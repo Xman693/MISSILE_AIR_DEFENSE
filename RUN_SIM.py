@@ -17,7 +17,6 @@ def Run_Simulation(sim_params, true_target_state_prev, radar_params):
     # --------------------------------- radar initialization -------------------------------------------------------------------
     time_since_last_radar_measurement = 0.0 # initialize the time since the last radar measurement
     time_since_last_gimble_change = 0.0 # initialize the time since the last gimble change
-    time_since_dwell = radar_params["dwell_time"] # force an immediate move to the first search angle
     noisy_radar_measurement_prev = np.array([0.0, 0.0, 0.0])
     true_radar_measurement = None
     noisy_radar_measurement = None
@@ -51,10 +50,9 @@ def Run_Simulation(sim_params, true_target_state_prev, radar_params):
       
         if gimble_change_available:
             if mode == "track":
-                beam_angle = radar.beam_steering_track(target_state_estimate[:4], beam_angle, radar_params["gimble_change_interval"], radar_params["dwell_time"])
+                beam_angle = radar.beam_steering_track(target_state_estimate[:4], beam_angle, radar_params["gimble_change_interval"])
             else:
-            # search dwell logic runs every step, independent of gimble_change_available
-                beam_angle, cmd_iter, time_since_dwell = radar.beam_steering_search(beam_angle, radar_params["dwell_time"], time_since_dwell, radar_params["fov_max"], radar_params["nominal_radar_pitch_angle"], cmd_iter)
+                beam_angle, cmd_iter = radar.beam_steering_search(beam_angle, radar_params["fov_max"], radar_params["nominal_radar_pitch_angle"], cmd_iter)
             
        
      

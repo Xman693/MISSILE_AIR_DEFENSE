@@ -7,10 +7,10 @@ warnings.filterwarnings('ignore')
 warnings.filterwarnings('always', category=RuntimeWarning)
 
 class Guidance:
-	def __init__(self, dt=0.01, num_steps=3000,
+	def __init__(self, dt=0.01, num_steps=30000,
 				 alpha0=0.0, gamma0_deg=38.0, speed0=30.0, q0=0.0, x0=0.0, z0=0.0,
-				 x_t0=10000.0, z_t0=10000.0, vx_t0=-250.0, vz_t0=0.0,
-				 gamma_cmd_deg=None, launcher_clear_time=0.5, maneuver_time=1.0, maneuver_gain=1.0,
+				 x_t0=20000.0, z_t0=10000.0, vx_t0=-250.0, vz_t0=0.0,
+				 gamma_cmd_deg=None, launcher_clear_time=0.3, maneuver_time=1.0, maneuver_gain=1.0,
 				 constants=None):
 		self.dt = dt
 		self.num_steps = num_steps
@@ -83,7 +83,7 @@ class Guidance:
 		constants["S"] = 0.05        # reference area, m^2
 		constants["b"] = 0.3         # reference length, m
 		constants["Tmax"] = 15000.0  # thrust, N
-		constants["thrust_ramp"] = 1.0  # thrust ramp time constant, s
+		constants["thrust_ramp"] = 0.2  # thrust ramp time constant, s
 		constants["thrust_hold"] = 5.0  # thrust hold time, s
 
 		return constants
@@ -222,8 +222,8 @@ class Guidance:
 		closing_speed = np.dot(rel_pos, rel_vel) / miss_range
 
 		# dimensionless miss term: (POCA / (poca_tol + POCA))^2, plus dimensionless load-factor effort
-		miss_term = (miss_range / (poca_tol + miss_range)) ** 2
-		cost = miss_term + weight_effort * I_effort
+		miss_term = (miss_range ) ** 2
+		cost = miss_term 
 
 		return cost, closing_speed
 

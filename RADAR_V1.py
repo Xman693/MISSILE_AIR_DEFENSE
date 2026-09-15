@@ -43,7 +43,7 @@ class Radar:
     
 
 
-    def beam_steering_track(self, target_state_estimate, beam_angle, gimble_dt, dwell_time):
+    def beam_steering_track(self, target_state_estimate, beam_angle, gimble_dt):
         
         # this logic tries to steer the radar beam to track the target based on the estimated target state
         
@@ -56,28 +56,23 @@ class Radar:
         
         LOS_RADAR = -np.atan2(POS_TARGET_RADAR[1], POS_TARGET_RADAR[0])
         
-        dt_total = gimble_dt + dwell_time
+        dt_total = gimble_dt
         
         # drive beam angle to track target line of sight
         BEAM_DOT = 5.0 * LOS_RADAR
         
         return beam_angle + BEAM_DOT * dt_total
     
-    def beam_steering_search(self, beam_angle, dwell_time, time_since_dwell, fov_max, nominal_radar_pitch_angle, cmd_iter):
+    def beam_steering_search(self, beam_angle, fov_max, nominal_radar_pitch_angle, cmd_iter):
 
         # this logic generates a sequence of beam commands within the field of view for search mode (all radians)
         delta_cmd_seq = np.linspace(-nominal_radar_pitch_angle, fov_max, 15)
 
-        if time_since_dwell >= dwell_time:
-            # dwell time elapsed on current angle, advance to the next angle in the sweep
-            cmd_iter = (cmd_iter + 1) % len(delta_cmd_seq)
-            beam_angle = delta_cmd_seq[cmd_iter]
-            time_since_dwell = 0.0
-        else:
-            # hold current beam angle, accumulate dwell time
-            time_since_dwell += self.dt_sim
+        # The gimbal timer has already confirmed that the dwell has elapsed.
+        cmd_iter = (cmd_iter + 1) % len(delta_cmd_seq)
+        beam_angle = delta_cmd_seq[cmd_iter]
 
-        return beam_angle, cmd_iter, time_since_dwell
+        return beam_angle, cmd_iter
     
         
         

@@ -52,6 +52,6 @@ def get_environment_parameters():
     
 def get_target_true_parameters():
     pos = np.array([80000.0, -50000])   # target starts at 100 km, 10 km down/up RELATVIE TO RADAR
-    vel = np.array([-700, -1000])
-    acc = np.array([0.0, 9.81])
+    vel = np.array([-700, 0])
+    acc = np.array([0.0, 0.0])
     return np.concatenate([pos, vel, acc])
