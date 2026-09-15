@@ -1,9 +1,5 @@
 import numpy as np
 
-import sys
-
-sys.path.append('/C:/GNC_PROJECTS/MISSILE_AIR_DEFENSE_SIMULATION_FRAMEWORK/TEST_BUILDS/')
-sys.path.append('C:/GNC_PROJECTS/MISSILE_AIR_DEFENSE_SIMULATION_FRAMEWORK/PARAMATERS/')
 
 import matplotlib.pyplot as plt
 
