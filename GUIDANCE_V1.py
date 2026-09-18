@@ -7,21 +7,10 @@ warnings.filterwarnings('always', category=RuntimeWarning)
 
 
 class Guidance:
-	"""
-	Pitch-plane missile state propagation using:
-		Vdot     = [T*cos(alpha) - F_tvc*sin(alpha) - qbar*S*(CD0 + K*alpha^2)] / m - g*sin(theta - alpha)
-		alphadot = q - [qbar*S*(CL0 + CLalpha*alpha + CLdelta*delta) + T*sin(alpha) + F_tvc*cos(alpha) - m*g*cos(theta - alpha)] / (m*V)
-		qdot     = [qbar*S*c*(Cm0 + Cmalpha*alpha + Cmq*(q*c/(2V)) + Cmdelta*delta) + l_tvc*F_tvc] / Iy
-		thetadot = q
-	with gamma = theta - alpha, xdot = V*cos(gamma), zdot = V*sin(gamma).
-
-	This step only propagates the state (no autopilot, no cost function evaluation).
-	Deflections are held at zero and TVC fires as a fixed-magnitude pulse right off the rail.
-	"""
-
-	def __init__(self, dt=0.001, t_max=100.0,
-				 V0=50.0, alpha0_deg=0.0, q0=0.0, theta0_deg=30.0, x0=0.0, z0=0.0,
-				 tvc_force=2000.0, tvc_duration=0.2,
+	def __init__(self, dt=0.01, num_steps=3000,
+				 alpha0=0.0, gamma0_deg=38.0, speed0=30.0, q0=0.0, x0=0.0, z0=0.0,
+				 x_t0=10000.0, z_t0=10000.0, vx_t0=-250.0, vz_t0=0.0,
+				 gamma_cmd_deg=None, launcher_clear_time=0.5, maneuver_time=1.0, maneuver_gain=1.0,
 				 constants=None):
 		self.dt = dt
 		self.num_steps = int(round(t_max / dt)) + 1
@@ -79,12 +68,8 @@ class Guidance:
 		# geometry / mass properties
 		constants["m"] = 100.0       # mass, kg
 		constants["S"] = 0.05        # reference area, m^2
-		constants["c"] = 0.3         # reference length, m
-		constants["Iy"] = 30.0       # pitch moment of inertia, kg*m^2
-		constants["l_tvc"] = 1     # TVC nozzle moment arm from CG, m
-
-		# propulsion (thrust profile: ramp up, hold, ramp down)
-		constants["Tmax"] = 15000.0     # max thrust, N
+		constants["b"] = 0.3         # reference length, m
+		constants["Tmax"] = 15000.0  # thrust, N
 		constants["thrust_ramp"] = 1.0  # thrust ramp time constant, s
 		constants["thrust_hold"] = 5.0  # thrust hold time, s
 
@@ -181,8 +166,76 @@ class Guidance:
 		k4 = self.missile_odes(state + dt * k3, t + dt)
 		return state + (dt / 6.0) * (k1 + 2 * k2 + 2 * k3 + k4)
 
-	def run_simulation(self):
-		"""Propagate the missile state only; no autopilot, no cost function evaluation."""
+		return state_next
+
+	def maneuver_step(self, i, t):
+		"""Force gamma toward gamma_cmd via a commanded gammadot, inverting gammadot = f(alpha) for the alpha needed to fly it"""
+		g = self.param["g"]
+		m = self.param["m"]
+		S = self.param["S"]
+		CD0 = self.param["CD0"]
+		CDalpha = self.param["CDalpha"]
+		CLalpha = self.param["CLalpha"]
+		Tmax = self.param["Tmax"]
+		thrust_ramp = self.param["thrust_ramp"]
+		thrust_hold = self.param["thrust_hold"]
+
+		gamma_prev = self.gamma[i]
+		alpha_prev = self.alpha[i]
+		speed_prev = self.speed[i]
+		x_prev = self.x[i]
+		z_prev = self.z[i]
+		theta_prev = gamma_prev + alpha_prev
+
+		gammadot_cmd = -self.maneuver_gain * (gamma_prev - self.gamma_cmd)
+		gamma_next = gamma_prev + gammadot_cmd * self.dt
+
+		# gammadot = (T*sin(alpha) + L(alpha) - m*g*sin(gamma)) / (m*speed); L is linear in alpha so
+		# solve numerically (Newton) for alpha to hit gammadot_cmd, starting from the previous alpha
+		T = self.thrust_profile(Tmax, t, thrust_ramp, thrust_hold)
+		rho = self.air_density(z_prev)
+		qinf = 0.5 * rho * speed_prev**2
+		rhs = m * speed_prev * gammadot_cmd + m * g * np.sin(gamma_prev)
+
+		alpha_next = alpha_prev
+		for _ in range(10):
+			f = T * np.sin(alpha_next) + qinf * S * CLalpha * alpha_next - rhs
+			fp = T * np.cos(alpha_next) + qinf * S * CLalpha
+			fp = fp if abs(fp) > 1e-9 else 1e-9
+			alpha_next = alpha_next - f / fp
+		alpha_next = np.clip(alpha_next, -np.pi/2, np.pi/2)
+
+		theta_next = gamma_next + alpha_next
+		q_next = (theta_next - theta_prev) / self.dt
+
+		D = qinf * S * (CD0 + CDalpha * alpha_next**2)
+		dspeed_dt = (T * np.cos(alpha_next) - D) / m - g * np.sin(gamma_prev)
+		speed_next = speed_prev + dspeed_dt * self.dt
+
+		x_next = x_prev + speed_prev * np.cos(gamma_prev) * self.dt
+		z_next = z_prev + speed_prev * np.sin(gamma_prev) * self.dt
+
+		return np.array([alpha_next, speed_next, q_next, gamma_next, x_next, z_next])
+
+	@staticmethod
+	def evaluate_cost(state, target_state, I_effort=0.0, weight_effort=1.0, poca_tol=2.0):
+		rel_pos = np.array([state[4] - target_state[0], state[5] - target_state[1]])
+		rel_vel = np.array([state[1] * np.cos(state[3]) - target_state[2], state[1] * np.sin(state[3]) - target_state[3]])
+
+		miss_range = np.linalg.norm(rel_pos)
+		closing_speed = np.dot(rel_pos, rel_vel) / miss_range
+
+		# dimensionless miss term: (POCA / (poca_tol + POCA))^2, plus dimensionless load-factor effort
+		miss_term = (miss_range / (poca_tol + miss_range)) ** 2
+		cost = miss_term + weight_effort * I_effort
+
+		return cost, closing_speed
+
+	def run_simulation(self, weight_effort=1.0):
+		prev_closing_speed = None
+		launch_clear_steps = int(round(self.launcher_clear_time / self.dt))
+		maneuver_end_steps = min(launch_clear_steps + int(round(self.maneuver_time / self.dt)), self.num_steps - 1)
+
 		for i in range(self.num_steps - 1):
 			t = i * self.dt
 			self.state = self.missile_rk4(self.state, t, self.dt)
