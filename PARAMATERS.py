@@ -42,13 +42,47 @@ def get_radar_parameters():
     return radar_params
     
 def get_missile_parameters():
-    pass
-    
-def get_aero_parameters():
-    pass
-    
+    missile_parameters = {
+        "m": 100.0,             # mass, kg
+        "S": 0.05,              # reference area, m^2
+        "c": 0.3,               # reference length, m
+        "Iy": 30.0,             # pitch moment of inertia, kg*m^2
+        "l_tvc": 1.0,           # TVC nozzle moment arm from CG, m
+        "Tmax": 15000.0,        # max thrust, N
+        "thrust_ramp": 1.0,     # thrust ramp time constant, s
+        "thrust_hold": 5.0,     # thrust hold time, s
+        "tvc_force": 2000.0,    # default TVC pulse magnitude, N
+    }
+    return missile_parameters
+
+def get_missile_aero():
+    # nonlinear CL/CD/Cm expansions:
+    #   CL = CL_max*tanh(CLalpha*alpha/CL_max) + CLdelta*delta
+    #   CD = CD0 + CDalpha2*alpha^2 + CDalpha4*alpha^4 + CDdelta2*delta^2
+    #   Cm = Cm0 + Cmalpha*alpha + Cmalpha3*alpha^3 + Cmq*(q*c/2V) + Cmdelta*delta
+    missile_aero = {
+        "CL_max": 1.5,       # lift coefficient saturation magnitude
+        "CLalpha": 2.0,      # lift coefficient slope wrt alpha at alpha=0, per rad
+        "CLdelta": 0.5,      # lift coefficient slope wrt fin deflection, per rad
+        "CD0": 0.3,          # zero-alpha drag coefficient
+        "CDalpha2": 2.5,     # drag coefficient slope wrt alpha^2
+        "CDalpha4": 5.0,     # drag coefficient slope wrt alpha^4
+        "CDdelta2": 0.3,     # drag coefficient slope wrt delta^2
+        "Cm0": 0.0,          # zero-alpha pitching moment coefficient
+        "Cmalpha": -8.0,     # pitching moment coefficient slope wrt alpha (statically stable)
+        "Cmalpha3": -15.0,   # pitching moment coefficient slope wrt alpha^3
+        "Cmq": -80.0,        # pitch damping moment coefficient
+        "Cmdelta": -0.5,     # pitching moment coefficient slope wrt fin deflection
+    }
+    return missile_aero
+
 def get_environment_parameters():
-    pass
+    environment_parameters = {
+        "rho0": 1.225,           # sea-level air density, kg/m^3
+        "scale_height": 8500.0,  # atmospheric scale height, m
+        "g": 9.81,               # gravitational acceleration, m/s^2
+    }
+    return environment_parameters
     
 def get_target_true_parameters():
     pos = np.array([80000.0, -50000])   # target starts at 100 km, 10 km down/up RELATVIE TO RADAR
