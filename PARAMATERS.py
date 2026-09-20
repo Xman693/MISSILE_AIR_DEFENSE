@@ -20,7 +20,6 @@ def get_radar_parameters():
     fov_max = np.deg2rad(75.0)
     beam_width = np.deg2rad(5.0)  # radar beam width
     beamwidth = np.deg2rad(5.0)
-    measurement_noise_std = np.array([np.deg2rad(2.0), 100, 20])
     nominal_radar_pitch_angle = np.deg2rad(30)
     true_radar_pitch_angle = np.deg2rad(30)
     gimble_change_interval = 1/1000
@@ -33,8 +32,8 @@ def get_radar_parameters():
         "fov_max": fov_max,
         "beam_width": beam_width,
         "beamwidth": beamwidth,
+        "radar_measurement_noise": np.array([np.deg2rad(5), 50.0, 20.0]),
         "gimble_change_interval": gimble_change_interval,
-        "measurement_noise_std": measurement_noise_std,
         "nominal_radar_pitch_angle": nominal_radar_pitch_angle,
         "true_radar_pitch_angle": true_radar_pitch_angle,
         "dwell_time": dwell_time,
@@ -46,12 +45,12 @@ def get_missile_parameters():
         "m": 100.0,             # mass, kg
         "S": 0.05,              # reference area, m^2
         "c": 0.3,               # reference length, m
-        "Iy": 30.0,             # pitch moment of inertia, kg*m^2
+        "Iy": 200,             # pitch moment of inertia, kg*m^2
         "l_tvc": 1.0,           # TVC nozzle moment arm from CG, m
         "Tmax": 15000.0,        # max thrust, N
         "thrust_ramp": 1.0,     # thrust ramp time constant, s
         "thrust_hold": 5.0,     # thrust hold time, s
-        "tvc_force": 2000.0,    # default TVC pulse magnitude, N
+        "tvc_force": 1000.0,    # default TVC pulse magnitude, N
     }
     return missile_parameters
 
@@ -89,3 +88,16 @@ def get_target_true_parameters():
     vel = np.array([-700, 0])
     acc = np.array([0.0, 0.0])
     return np.concatenate([pos, vel, acc])
+
+def get_covariance_matrices():
+    P = np.diag([100000.0**2, 100000.0**2, 1000.0**2, 1000.0**2])
+    Q = np.zeros((4, 4))
+    R = np.diag([np.deg2rad(0.5)**2, 5.0**2, 2.0**2])
+    
+    covar_matrices = {
+        "P": P,
+        "Q": Q,
+        "R": R
+    }
+    
+    return covar_matrices

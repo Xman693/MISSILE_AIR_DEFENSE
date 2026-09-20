@@ -30,7 +30,7 @@ def missile_initial_state():
         "alpha": 0.0,    # initial angle of attack, rad
         "q": 0.0,        # initial pitch rate, rad/s
         "theta": np.deg2rad(30.0),    # initial pitch angle, rad
-        "x": 0.0,        # initial x position, m
+        "x": 1000,        # initial x position, m # launcher position rel to RADAR NED
         "z": 0.0         # initial z position, m
     }
     return state

@@ -59,7 +59,9 @@ class Radar:
         dt_total = gimble_dt
         
         # drive beam angle to track target line of sight
-        BEAM_DOT = 5.0 * LOS_RADAR
+        BEAM_DOT = 100 * LOS_RADAR
+        
+        BEAM_DOT = np.clip(BEAM_DOT, -1000/180*np.pi, 1000/180*np.pi)  # limit the beam rate to avoid excessive steering
         
         return beam_angle + BEAM_DOT * dt_total
     

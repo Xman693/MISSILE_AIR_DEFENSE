@@ -4,14 +4,19 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from PARAMATERS import *
-from TRUTH import Truth
+from TARGET_TRUTH import Truth
 from RADAR_V1 import Radar
-#from FIRE_CONTROL import FireControl
+from FireControl import FireControl
 from LOGGER import Logger
 
 
 def Run_Simulation(sim_params, true_target_state_prev, radar_params): 
-    
+    truth = Truth(
+        dt_sim=sim_params["dt"],
+        target_state=true_target_state_prev,
+        t_max=sim_params["t_max"],
+    )
+    true_target_trajectory = truth.get_target_trajectory()
   
    
     # --------------------------------- radar initialization -------------------------------------------------------------------
@@ -25,8 +30,13 @@ def Run_Simulation(sim_params, true_target_state_prev, radar_params):
     cmd_iter = 0
     counter = 0
 
-    # this version has no estimator yet, so the target state estimate is just the true target state
-    target_state_estimate = true_target_state_prev
+    covariance_matrices = get_covariance_matrices()
+    fire_control = FireControl(
+        P_initial=covariance_matrices["P"],
+        Q=covariance_matrices["Q"],
+        R=covariance_matrices["R"],
+    )
+    target_state_estimate = np.zeros(4)
 
     logger = Logger()
 
@@ -34,11 +44,7 @@ def Run_Simulation(sim_params, true_target_state_prev, radar_params):
         t = i * sim_params["dt"]
 
         # -------------------------------------- call True Target --------------------------------------------------------------------------------------------------------
-        truth = Truth(dt_sim=sim_params["dt"], true_target_state_prev=true_target_state_prev)
-        true_target_state_prev = truth.get_true_target() # updates the target state for the current simulation step
-
-        # this version has no estimator yet, so the target state estimate is just the true target state
-        target_state_estimate = true_target_state_prev
+        true_target_state_prev = truth.get_target_at_time(t, true_target_trajectory)
 
         # ----------------------------------------call Radar ----------------------------------------------------------------------------------------------------------
         radar = Radar(range=radar_params["max_range"], beamwidth = radar_params["beamwidth"], fov=radar_params["fov_max"], dt_sim=sim_params["dt"], time_since_last_radar_measurement=time_since_last_radar_measurement, measurement_interval=radar_params["measurement_interval"], true_radar_pitch_angle=radar_params["true_radar_pitch_angle"])
@@ -50,7 +56,7 @@ def Run_Simulation(sim_params, true_target_state_prev, radar_params):
       
         if gimble_change_available:
             if mode == "track":
-                beam_angle = radar.beam_steering_track(target_state_estimate[:4], beam_angle, radar_params["gimble_change_interval"])
+                beam_angle = radar.beam_steering_track(target_state_estimate, beam_angle, radar_params["gimble_change_interval"])
             else:
                 beam_angle, cmd_iter = radar.beam_steering_search(beam_angle, radar_params["fov_max"], radar_params["nominal_radar_pitch_angle"], cmd_iter)
             
@@ -63,21 +69,21 @@ def Run_Simulation(sim_params, true_target_state_prev, radar_params):
             mode = radar.set_mode(true_target_state_RNED=true_target_state_prev[:4], beam_angle=beam_angle, true_radar_pitch_angle=radar_params["true_radar_pitch_angle"]) # detection logic / set mode logic
             if mode == "track":
                 true_radar_measurement = radar.get_true_measurement(true_target_state_prev[:4], radar_params["true_radar_pitch_angle"], beam_angle)
-                noisy_radar_measurement = radar.get_noisy_measurement(true_radar_measurement, radar_params["measurement_noise_std"])
+                noisy_radar_measurement = radar.get_noisy_measurement(true_radar_measurement, radar_params["radar_measurement_noise"])
                
             else:
                 true_radar_measurement = None
                 noisy_radar_measurement = None
             
        
-         # --------------------------------- compute fire control solution -------------------------------------------------------------------
-        #fire_control = FireControl()
-      
-       # fire_control_processing_available = radar.fire_control_processing_available(time_since_last_fire_control_processing, fire_control_params["fire_control_processing_interval"])
-        
-        #if fire_control_processing_available:
-        
-        #    target_state_estimate = fire_control.estimate_target_state(noisy_radar_measurement, radar_params["nominal_radar_pitch_angle"])
+         # --------------------------------- update target state estimate -------------------------------------------------------------------
+        if mode == "track" and noisy_radar_measurement is not None:
+            target_state_estimate, _ = fire_control.estimate_target_state(
+                noisy_radar_measurement=noisy_radar_measurement,
+                nominal_radar_pitch_angle=radar_params["nominal_radar_pitch_angle"],
+                dt=sim_params["dt"],
+                beam_angle=beam_angle,
+            )
         
         
             
