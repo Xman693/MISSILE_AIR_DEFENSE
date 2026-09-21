@@ -6,8 +6,13 @@ import matplotlib.pyplot as plt
 from PARAMATERS import *
 from TARGET_TRUTH import Truth
 from RADAR_V1 import Radar
-from FireControl import FireControl
+from FireControl import FireControl, state_lookup, target_state_extrapolation
 from LOGGER import Logger
+from INITIAL_TURN_STATE_TABLE import get_initial_turn_state_table
+
+state_table = get_initial_turn_state_table()
+fc_params = get_fc_params()
+covar_matrices = get_covariance_matrices()
 
 
 def Run_Simulation(sim_params, true_target_state_prev, radar_params): 
@@ -29,13 +34,18 @@ def Run_Simulation(sim_params, true_target_state_prev, radar_params):
     beam_angle = 0.0
     cmd_iter = 0
     counter = 0
+    
+    # --------------------------------- fire control initialization -------------------------------------------------------------------
+    target_extrapolated_trajectory = None
+    intercept_point = None
+    launch_decision = False
+    gamma_initial_turn = np.nan
+    t_burst = np.nan
+    time_of_flight = np.nan
+    launch_cmd = False
 
-    covariance_matrices = get_covariance_matrices()
-    fire_control = FireControl(
-        P_initial=covariance_matrices["P"],
-        Q=covariance_matrices["Q"],
-        R=covariance_matrices["R"],
-    )
+   
+  
     target_state_estimate = np.zeros(4)
 
     logger = Logger()
@@ -77,14 +87,62 @@ def Run_Simulation(sim_params, true_target_state_prev, radar_params):
             
        
          # --------------------------------- update target state estimate -------------------------------------------------------------------
-        if mode == "track" and noisy_radar_measurement is not None:
-            target_state_estimate, _ = fire_control.estimate_target_state(
-                noisy_radar_measurement=noisy_radar_measurement,
-                nominal_radar_pitch_angle=radar_params["nominal_radar_pitch_angle"],
-                dt=sim_params["dt"],
-                beam_angle=beam_angle,
-            )
+      
         
+        fire_control = FireControl(P_initial=covar_matrices["P"], Q=covar_matrices["Q"], R=covar_matrices["R"], time_since_last_fc_measurement=fc_params["time_since_last_fc_measurement"], processing_interval=fc_params["processing_interval"], dt_sim=sim_params["dt"])
+        fire_control_processing_available = fire_control.processing_available()
+        uplink_available =  fire_control.uplink_available()
+        
+        
+        if fire_control_processing_available:
+            if launch_cmd == False:
+             # pre launch guidance, time_since_launch_cmd_sent
+            
+            elif launch_cmd == True and missile_tof > 1:
+                # midcourse guidance, gamma_cmd_uplink time_since_uplink_sent (IFA goes here for future)
+                
+                
+        # --------------------------- missile guidance -------------------------------------------
+        
+        # if time_since_launch_sent >= launch_delay and PHASE = "INTIAL":
+        # missiles uses open loop pre compued t burst as control input
+        
+        
+        
+        
+        # if time_since_uplink_sent >= uplink_delay and PHASE = "midcourse":
+            # gamma_cmd_recieved = gamma_cmd_uplink # MISSILE RECIEVES UPLINK GAMMA CMD AND USES IT IN AUTOPILOT
+        
+        # if PHASE = "endgame" or "homing":
+        # missile ignores any ground command and uses its own seeeker to guide itself to the target
+        
+        # ----------------- missile autopilot -------------------------------------------
+        
+                 # USE CMDS FROM ABOVE
+        
+                 # -------------- missile truth -------------------------------------------------
+
+                    # integrate missile truth according to applied inputs
+        
+                 # ------------ missile state estimator ------------------------------------------
+
+                    # estimate missile state from IMU/KF --> feedback to autopilot
+                    
+                    
+        # send missile downlink 
+        
+        
+        
+    
+        
+        
+        
+                
+                
+                
+                
+                
+              
         
             
      
@@ -110,10 +168,15 @@ def Run_Simulation(sim_params, true_target_state_prev, radar_params):
             radar_measurement_available=radar_measurement_processing_available,
             gimble_change_available=gimble_change_available,
             cmd_iter=cmd_iter,
+            launch_decision=launch_decision,
+            gamma_initial_turn=gamma_initial_turn,
+            t_burst=t_burst,
+            time_of_flight=time_of_flight,
         )
 
     logger.plot_results(radar_pitch_angle=radar_params["true_radar_pitch_angle"])
     logger.plot_radar_measurement_available()
+    logger.plot_pre_launch_guidance()
     anim = logger.animate_results(radar_pitch_angle=radar_params["true_radar_pitch_angle"], beamwidth=radar_params["beamwidth"], dt_sim=sim_params["dt"])
     return logger, anim
 

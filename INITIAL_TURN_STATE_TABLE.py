@@ -14,6 +14,7 @@ state_table = np.zeros((len(t_burst_values), 8))
 
 def get_initial_turn_state_table():
     global state_table
+    state_table_array = np.zeros((len(t_burst_values), 8))
 
     for row_counter, t_burst in enumerate(t_burst_values):
 
@@ -31,15 +32,15 @@ def get_initial_turn_state_table():
                 break
 
         if blew_up:
-            state_table[row_counter, :] = np.nan
+            state_table_array[row_counter, :] = np.nan
             continue
 
         # calculate gamma,
         gamma = np.rad2deg(missile["theta"] - missile["alpha"])  # assuming gamma is the pitch angle in degrees
 
-        state_table[row_counter, :] = [t_burst, gamma, np.rad2deg(missile["theta"]), np.rad2deg(missile["alpha"]), missile["q"], missile["V"], missile["x"], missile["z"]]
+        state_table_array[row_counter, :] = [t_burst, gamma, np.rad2deg(missile["theta"]), np.rad2deg(missile["alpha"]), missile["q"], missile["V"], missile["x"], missile["z"]]
 
-    state_table = pd.DataFrame(state_table, columns=["t_burst", "gamma", "theta", "alpha", "q", "V", "x", "z"])
+    state_table = pd.DataFrame(state_table_array, columns=["t_burst", "gamma", "theta", "alpha", "q", "V", "x", "z"])
     print(state_table)
 
     state_table.to_csv("INITIAL_TURN_STATE_TABLE.csv", index=False)

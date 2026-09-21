@@ -15,10 +15,16 @@ class Logger:
         self.radar_measurement_available_hist = []
         self.gimble_change_available_hist = []
         self.cmd_iter_hist = []
+        self.launch_decision_hist = []
+        self.gamma_initial_turn_hist = []
+        self.t_burst_hist = []
+        self.time_of_flight_hist = []
 
     def log_step(self, t, true_target_state, target_state_estimate, mode, beam_angle,
                  true_radar_measurement, noisy_radar_measurement,
-                 radar_measurement_available, gimble_change_available, cmd_iter):
+                 radar_measurement_available, gimble_change_available, cmd_iter,
+                 launch_decision=False, gamma_initial_turn=np.nan,
+                 t_burst=np.nan, time_of_flight=np.nan):
         self.time_hist.append(t)
         self.true_target_state_hist.append(np.array(true_target_state, dtype=float))
         self.target_state_estimate_hist.append(np.array(target_state_estimate, dtype=float))
@@ -29,6 +35,35 @@ class Logger:
         self.radar_measurement_available_hist.append(radar_measurement_available)
         self.gimble_change_available_hist.append(gimble_change_available)
         self.cmd_iter_hist.append(cmd_iter)
+        self.launch_decision_hist.append(launch_decision)
+        self.gamma_initial_turn_hist.append(gamma_initial_turn)
+        self.t_burst_hist.append(t_burst)
+        self.time_of_flight_hist.append(time_of_flight)
+
+    def plot_pre_launch_guidance(self):
+        time_hist = np.asarray(self.time_hist, dtype=float)
+        gamma_hist = np.asarray(self.gamma_initial_turn_hist, dtype=float)
+        t_burst_hist = np.asarray(self.t_burst_hist, dtype=float)
+        tof_hist = np.asarray(self.time_of_flight_hist, dtype=float)
+        launch_hist = np.asarray(self.launch_decision_hist, dtype=bool)
+
+        figure, axes = plt.subplots(4, 1, figsize=(10, 10), sharex=True)
+        axes[0].plot(time_hist, gamma_hist, color="tab:blue")
+        axes[0].set_ylabel("initial gamma (deg)")
+        axes[1].plot(time_hist, t_burst_hist, color="tab:orange")
+        axes[1].set_ylabel("t_burst (s)")
+        axes[2].plot(time_hist, tof_hist, color="tab:green")
+        axes[2].set_ylabel("time of flight (s)")
+        axes[3].step(time_hist, launch_hist.astype(int), where="post", color="tab:red")
+        axes[3].set_ylabel("launch decision")
+        axes[3].set_xlabel("time (s)")
+        axes[3].set_yticks([0, 1])
+
+        for axis in axes:
+            axis.grid(True)
+        figure.suptitle("Pre-launch Guidance Outputs")
+        figure.tight_layout()
+        plt.show()
 
     def plot_radar_measurement_available(self):
         time_hist = np.array(self.time_hist)

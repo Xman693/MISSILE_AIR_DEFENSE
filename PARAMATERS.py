@@ -101,3 +101,11 @@ def get_covariance_matrices():
     }
     
     return covar_matrices
+
+def get_fc_params():
+    fc_params = {
+        "processing_freq": 100,
+        "processing_interval": 1/fc_params["processing_freq"],
+      
+    }
+    return fc_params
