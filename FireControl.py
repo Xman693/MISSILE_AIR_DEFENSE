@@ -94,16 +94,13 @@ def compute_cost(trajectory):
 
 
 class FireControl:
-    def __init__(self, P_initial, Q, R, time_since_last_fc_measurement, measurement_interval, dt_sim):
+    def __init__(self, P_initial, Q, R):
         self.P_initial = np.asarray(P_initial, dtype=float)
         self.Q = np.asarray(Q, dtype=float)
         self.R = np.asarray(R, dtype=float)
         self.P = self.P_initial.copy()
         self.state_estimate_NED = None
         self.first_iteration = True
-        self.time_since_last_fc_measurement = time_since_last_fc_measurement
-        self.measurement_interval = measurement_interval
-        self.dt_sim = dt_sim
 
     @staticmethod
     def _rotation(nominal_radar_pitch_angle, beam_angle):
@@ -279,33 +276,6 @@ def launch_true(target_at_launch, target_state, P):
     
     
     
-def fire_control_processing_available(self, ):
-    
-      
-     if self.time_since_last_fc_measurement >= self.measurement_interval:
-         return True, 0.0
-     else:
-         return False, self.time_since_last_fc_measurement + self.dt_sim
-            
-    
-
-
-    
-    
-    
-       
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-
-
 def pre_launch_guidance(intercept_point, target_state, P):
     
     

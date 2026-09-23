@@ -12,8 +12,8 @@ class Logger:
         self.beam_angle_hist = []
         self.true_radar_measurement_hist = []
         self.noisy_radar_measurement_hist = []
-        self.radar_measurement_available_hist = []
-        self.gimble_change_available_hist = []
+        self.radar_update_due_hist = []
+        self.radar_beam_change_due_hist = []
         self.cmd_iter_hist = []
         self.launch_decision_hist = []
         self.gamma_initial_turn_hist = []
@@ -22,7 +22,7 @@ class Logger:
 
     def log_step(self, t, true_target_state, target_state_estimate, mode, beam_angle,
                  true_radar_measurement, noisy_radar_measurement,
-                 radar_measurement_available, gimble_change_available, cmd_iter,
+                 radar_update_due, radar_beam_change_due, cmd_iter,
                  launch_decision=False, gamma_initial_turn=np.nan,
                  t_burst=np.nan, time_of_flight=np.nan):
         self.time_hist.append(t)
@@ -32,8 +32,8 @@ class Logger:
         self.beam_angle_hist.append(beam_angle)
         self.true_radar_measurement_hist.append(true_radar_measurement)
         self.noisy_radar_measurement_hist.append(noisy_radar_measurement)
-        self.radar_measurement_available_hist.append(radar_measurement_available)
-        self.gimble_change_available_hist.append(gimble_change_available)
+        self.radar_update_due_hist.append(radar_update_due)
+        self.radar_beam_change_due_hist.append(radar_beam_change_due)
         self.cmd_iter_hist.append(cmd_iter)
         self.launch_decision_hist.append(launch_decision)
         self.gamma_initial_turn_hist.append(gamma_initial_turn)
@@ -67,7 +67,7 @@ class Logger:
 
     def plot_radar_measurement_available(self):
         time_hist = np.array(self.time_hist)
-        available_hist = np.array([1 if a else 0 for a in self.radar_measurement_available_hist])
+        available_hist = np.array([1 if a else 0 for a in self.radar_update_due_hist])
 
         fig, ax = plt.subplots(figsize=(10, 3))
         ax.plot(time_hist, available_hist, drawstyle='steps-post', color='tab:red')
@@ -151,7 +151,7 @@ class Logger:
 
             for idx in track_indices:
                 meas = self.noisy_radar_measurement_hist[idx]
-                if meas is not None and len(meas) == 3 and self.radar_measurement_available_hist[idx]:
+                if meas is not None and len(meas) == 3 and self.radar_update_due_hist[idx]:
                     meas_times.append(time_hist[idx])
                     noisy_los.append(np.rad2deg(meas[0]))  # LOS stored in radians; convert for plot
                     noisy_range.append(meas[1])

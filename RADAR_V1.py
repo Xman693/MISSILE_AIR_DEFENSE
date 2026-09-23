@@ -2,36 +2,13 @@ import numpy as np
 
 
 class Radar:
-    def __init__(self, range, fov, dt_sim, time_since_last_radar_measurement, measurement_interval, beamwidth=None, true_radar_pitch_angle=None):
+    def __init__(self, range, fov, beamwidth=None, true_radar_pitch_angle=None):
         self.range = range
         self.fov = fov
-        self.dt_sim = dt_sim
-        self.time_since_last_radar_measurement = time_since_last_radar_measurement
-        self.measurement_interval = measurement_interval
         self.beamwidth = beamwidth
         self.true_radar_pitch_angle = true_radar_pitch_angle
         self.mode = "search"
 
-    def radar_measurement_processing_available(self):
-        # checks if enough time has passed since the last radar measurement to process a new one ()
-        
-        
-        if self.time_since_last_radar_measurement >= self.measurement_interval:
-            return True, 0.0
-        else:
-            return False, self.time_since_last_radar_measurement + self.dt_sim
-        
-
-    def gimble_change_available(self, time_since_last_gimble_change, gimble_change_interval, dwell_time):
-        # checks if the radar gimbal can change its orientation based on the elapsed time and dwell time 
-        
-        
-        if time_since_last_gimble_change >= gimble_change_interval + dwell_time:
-            return True, 0.0
-        else:
-            return False, time_since_last_gimble_change + self.dt_sim
-        
-        
     def set_mode(self,true_target_state_RNED, beam_angle, true_radar_pitch_angle ):
         # sets the radar mode to "track" if the target is detected, otherwise "search"
         if self.target_detected_true(true_target_state_RNED, beam_angle, true_radar_pitch_angle):
@@ -43,7 +20,7 @@ class Radar:
     
 
 
-    def beam_steering_track(self, target_state_estimate, beam_angle, gimble_dt):
+    def beam_steering_track(self, target_state_estimate, beam_angle, radar_beam_dt):
         
         # this logic tries to steer the radar beam to track the target based on the estimated target state
         
@@ -56,7 +33,7 @@ class Radar:
         
         LOS_RADAR = -np.atan2(POS_TARGET_RADAR[1], POS_TARGET_RADAR[0])
         
-        dt_total = gimble_dt
+        dt_total = radar_beam_dt
         
         # drive beam angle to track target line of sight
         BEAM_DOT = 100 * LOS_RADAR

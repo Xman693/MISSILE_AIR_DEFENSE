@@ -15,25 +15,25 @@ def get_simulation_parameters():
     
 def get_radar_parameters():
     update_freq = 20  # radar updates 20 times per second
-    measurement_interval = 1.0 / update_freq  # time interval between radar measurements
+    update_interval = 1.0 / update_freq  # time interval between radar measurements
     max_range = 100000.0  # maximum radar range
     fov_max = np.deg2rad(75.0)
     beam_width = np.deg2rad(5.0)  # radar beam width
     beamwidth = np.deg2rad(5.0)
     nominal_radar_pitch_angle = np.deg2rad(30)
     true_radar_pitch_angle = np.deg2rad(30)
-    gimble_change_interval = 1/1000
-    dwell_time = measurement_interval
+    radar_beam_change_interval = 1/1000
+    dwell_time = update_interval
 
     radar_params = {
         "update_freq": update_freq,
-        "measurement_interval": measurement_interval,
+        "update_interval": update_interval,
         "max_range": max_range,
         "fov_max": fov_max,
         "beam_width": beam_width,
         "beamwidth": beamwidth,
         "radar_measurement_noise": np.array([np.deg2rad(5), 50.0, 20.0]),
-        "gimble_change_interval": gimble_change_interval,
+        "radar_beam_change_interval": radar_beam_change_interval,
         "nominal_radar_pitch_angle": nominal_radar_pitch_angle,
         "true_radar_pitch_angle": true_radar_pitch_angle,
         "dwell_time": dwell_time,
@@ -103,9 +103,12 @@ def get_covariance_matrices():
     return covar_matrices
 
 def get_fc_params():
+    
+    update_freq = 100
+  
     fc_params = {
-        "processing_freq": 100,
-        "processing_interval": 1/fc_params["processing_freq"],
+        "update_freq": update_freq,
+        "fc_update_interval": 1/update_freq,
       
     }
     return fc_params
