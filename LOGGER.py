@@ -65,17 +65,25 @@ class Logger:
         figure.tight_layout()
         plt.show()
 
-    def plot_radar_measurement_available(self):
+    def plot_scheduler_clocks(self):
         time_hist = np.array(self.time_hist)
-        available_hist = np.array([1 if a else 0 for a in self.radar_update_due_hist])
+        radar_update_hist = np.array([1 if a else 0 for a in self.radar_update_due_hist])
+        radar_beam_change_hist = np.array([1 if a else 0 for a in self.radar_beam_change_due_hist])
 
-        fig, ax = plt.subplots(figsize=(10, 3))
-        ax.plot(time_hist, available_hist, drawstyle='steps-post', color='tab:red')
-        ax.set_xlabel('time (s)')
-        ax.set_ylabel('radar measurement available (0/1)')
-        ax.set_yticks([0, 1])
-        ax.set_ylim(-0.2, 1.2)
-        ax.grid(True)
+        fig, axes = plt.subplots(2, 1, figsize=(10, 5), sharex=True)
+        axes[0].plot(time_hist, radar_update_hist, drawstyle='steps-post', color='tab:red')
+        axes[0].set_ylabel('radar_update_due (0/1)')
+        axes[0].set_yticks([0, 1])
+        axes[0].set_ylim(-0.2, 1.2)
+        axes[0].grid(True)
+
+        axes[1].plot(time_hist, radar_beam_change_hist, drawstyle='steps-post', color='tab:blue')
+        axes[1].set_xlabel('time (s)')
+        axes[1].set_ylabel('radar_beam_change_due (0/1)')
+        axes[1].set_yticks([0, 1])
+        axes[1].set_ylim(-0.2, 1.2)
+        axes[1].grid(True)
+
         fig.tight_layout()
         plt.show()
 

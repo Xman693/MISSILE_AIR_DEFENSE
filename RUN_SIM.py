@@ -89,6 +89,7 @@ def Run_Simulation(sim_params, true_target_state, radar_params):
     
         # -------------------------------------- call True Target --------------------------------------------------------------------------------------------------------
         true_target_state = truth.get_target_at_time(t, true_target_trajectory)
+        target_state_estimate = true_target_state[:4]
 
        
        # --------------------------------------- beam steering logic -------------------------------------------------------------------
@@ -201,7 +202,7 @@ def Run_Simulation(sim_params, true_target_state, radar_params):
         )
 
     logger.plot_results(radar_pitch_angle=radar_params["true_radar_pitch_angle"])
-    logger.plot_radar_measurement_available()
+    logger.plot_scheduler_clocks()
     logger.plot_pre_launch_guidance()
     anim = logger.animate_results(radar_pitch_angle=radar_params["true_radar_pitch_angle"], beamwidth=radar_params["beamwidth"], dt_sim=sim_params["dt"])
     return logger, anim

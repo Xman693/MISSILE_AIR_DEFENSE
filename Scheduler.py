@@ -5,7 +5,7 @@ fc_params = get_fc_params()
 sim_params = get_simulation_parameters()
 
 dwell_time = radar_params["dwell_time"] # s
-radar_beam_change_interval = radar_params["radar_beam_change_interval"] # s
+radar_beam_change_interval = radar_params["radar_beam_change_interval"] + dwell_time # s
 
 radar_update_interval = radar_params["update_interval"] # s
 
