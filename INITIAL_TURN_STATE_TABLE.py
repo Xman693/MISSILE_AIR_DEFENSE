@@ -3,8 +3,8 @@ import pandas as pd
 import MISSILE_TRUTH
 
 
-dt = 0.01 # time step for simulation
-dt_burst = 0.001 # time difference for table 
+dt = 0.001 # time step for simulation
+dt_burst = 0.01 # time difference for table 
 t_max = 2 # time duration for intial turn to be completed
 dt_burst_max = 1
 
